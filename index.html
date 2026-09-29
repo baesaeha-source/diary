@@ -46,6 +46,7 @@ details{font-size:.85rem;margin-top:10px}
 #fields{display:grid;gap:10px}#fields .field{margin:0}
 @media(min-width:760px){#fields{grid-template-columns:1fr 1fr}textarea{min-height:130px}}
 @media(min-width:900px){main{max-width:1280px;display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}header h1{font-size:2rem}}
+select{width:100%;font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -53,6 +54,7 @@ details{font-size:.85rem;margin-top:10px}
 <main><div class="col">
 <section>
   <h2><span>1</span>오늘 날짜와 날씨</h2>
+  <div id="stWrap" hidden style="margin-bottom:12px"><label for="student">누구의 일기인가요? (내 이름·번호)</label><div class="box" style="max-width:260px"><select id="student"></select></div></div>
   <div class="box" style="max-width:260px"><input type="date" id="date"></div>
   <p class="hint" style="margin-top:12px">오늘 날씨를 눌러 보세요</p>
   <div class="w" id="weather"></div>
@@ -198,11 +200,21 @@ $('coach').onclick=async()=>{const draft=$('diary').value.trim();
 $('save').onclick=async()=>{const mine=$('diary').value.trim();
  if(!mine)return msg('먼저 일기를 만들어 주세요.');
  if(!$('url').value.trim())return msg('선생님 설정에 구글 시트 주소를 먼저 넣어야 해요. (README 참고)');
- try{const d=await post({action:'save',date:$('date').value,weather,mine,ai:$('ai').value.trim()});
+ const st=$('student').value;if(!$('stWrap').hidden&&!st)return msg('먼저 위에서 내 이름(번호)을 골라 주세요.');
+ try{const d=await post({action:'save',student:$('student').value,date:$('date').value,weather,mine,ai:$('ai').value.trim()});
   if(!d.ok)throw new Error(d.error);msg('☁️ 저장했어요!'+($('ai').value.trim()?'':' (AI 글은 비어 있어요)'),true)}
  catch(e){msg('저장 결과를 확인하지 못했어요('+e.message+'). 구글 시트에서 확인한 뒤, 없을 때만 다시 눌러 주세요.')}};
 $('copy').onclick=async()=>{const t=`${$('date').value} ${weather}\n[내가 쓴 글]\n${$('diary').value}\n\n[AI가 다듬은 글]\n${$('ai').value}`;
  try{await navigator.clipboard.writeText(t);msg('📋 복사했어요!',true)}catch(e){msg('복사하지 못했어요. 글을 직접 선택해 복사해 주세요.')}};
+// 학생 명단 불러오기
+async function loadStudents(){if(!$('url').value.trim())return;
+ try{const d=await post({action:'students'});if(!d.ok)throw new Error(d.error);
+  const sel=$('student');sel.innerHTML='';const o0=document.createElement('option');o0.value='';o0.textContent='-- 골라 주세요 --';sel.appendChild(o0);
+  d.names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o)});
+  sel.value=localStorage.getItem('student')||'';if(sel.value!==(localStorage.getItem('student')||''))sel.value='';
+  $('stWrap').hidden=!d.names.length}catch(e){}}
+$('student').addEventListener('change',()=>{try{localStorage.setItem('student',$('student').value)}catch(e){}});
+$('url').addEventListener('change',loadStudents);$('code').addEventListener('change',loadStudents);loadStudents();
 </script>
 </body>
 </html>
