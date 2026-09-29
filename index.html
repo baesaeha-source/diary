@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘의 일기 도우미</title>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff8f0;--card:#fff;--pk:#ffd6e0;--mint:#d4f1e4;--sky:#d6e8ff;--yl:#fff0b8;--ink:#4a4453;--pt:#7b6cc4;--line:#eadfd3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Gowun Dodum','Malgun Gothic',sans-serif;font-size:19px;line-height:1.6}
+header{text-align:center;padding:22px 12px 8px}
+h1{margin:0;font-size:1.7rem;color:var(--pt)}
+header p{margin:4px 0 0;font-size:.9rem;opacity:.75}
+main{max-width:760px;margin:0 auto;padding:8px 14px 60px}
+section{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:16px 18px;margin:14px 0}
+h2{margin:0 0 10px;font-size:1.15rem}
+h2 span{display:inline-block;background:var(--pt);color:#fff;border-radius:50%;width:1.6em;height:1.6em;text-align:center;line-height:1.6em;margin-right:6px;font-size:.9em}
+.hint{font-size:.85rem;opacity:.7;margin:-4px 0 10px}
+.w{display:flex;flex-wrap:wrap;gap:8px}
+.w button{font-size:2rem;width:64px;height:64px;border-radius:18px;border:3px solid var(--line);background:#fff;cursor:pointer}
+.w button small{display:block;font-size:.65rem;line-height:1;font-family:inherit}
+.w button.on{border-color:var(--pt);background:var(--yl)}
+.field{margin:14px 0;padding:10px 12px;border-radius:16px}
+.field:nth-child(6n+1){background:#fff3f6}.field:nth-child(6n+2){background:#f1fbf6}.field:nth-child(6n+3){background:#f1f7ff}
+.field:nth-child(6n+4){background:#fffaea}.field:nth-child(6n+5){background:#f7f2ff}.field:nth-child(6n){background:#fff3f6}
+label{font-weight:bold;display:block;margin-bottom:6px}
+.box{position:relative}
+input,textarea{width:100%;font:inherit;padding:12px 44px 12px 14px;border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
+textarea{min-height:110px}
+input:focus,textarea:focus{outline:3px solid #cfc5ff;border-color:var(--pt)}
+.x{position:absolute;right:8px;top:8px;width:34px;height:34px;border:0;border-radius:50%;background:#eee;color:#666;font-size:1.1rem;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{font:inherit;font-size:.9rem;padding:8px 14px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;min-height:40px}
+.chip:active,.chip.on{background:var(--pk);border-color:#f3a6bb}
+.rec{font-size:.85rem;color:var(--pt);margin-top:6px}
+.btn{font:inherit;font-weight:bold;padding:14px 22px;border:0;border-radius:16px;background:var(--pt);color:#fff;cursor:pointer;min-height:52px;margin:4px 6px 4px 0}
+.btn.sub{background:var(--mint);color:var(--ink)}
+.out{background:var(--yl);border-radius:16px;padding:14px;white-space:pre-wrap;min-height:80px}
+.fb{background:var(--sky);border-radius:16px;padding:14px;margin-top:10px}
+.fix{font-size:.85rem;opacity:.8;margin-top:8px}
+#msg{font-size:.9rem;margin-top:8px}
+details{font-size:.85rem;margin-top:10px}
+@media(min-width:700px){body{font-size:20px}}
+.chip small{}label small{font-weight:normal;opacity:.7}.btn:disabled{opacity:.6}textarea#ai{background:#f7f2ff}.col{min-width:0}
+#fields{display:grid;gap:10px}#fields .field{margin:0}
+@media(min-width:760px){#fields{grid-template-columns:1fr 1fr}textarea{min-height:130px}}
+@media(min-width:900px){main{max-width:1280px;display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}header h1{font-size:2rem}}
+</style>
+</head>
+<body>
+<header><h1>📒 오늘의 일기 도우미</h1><p>차근차근 고르고 쓰면, 일기가 완성돼요</p></header>
+<main><div class="col">
+<section>
+  <h2><span>1</span>오늘 날짜와 날씨</h2>
+  <div class="box" style="max-width:260px"><input type="date" id="date"></div>
+  <p class="hint" style="margin-top:12px">오늘 날씨를 눌러 보세요</p>
+  <div class="w" id="weather"></div>
+</section>
+
+<section>
+  <h2><span>2</span>오늘 가장 기억에 남는 일</h2>
+  <p class="hint">칸마다 예시를 누르거나 직접 써도 돼요. 모르는 칸은 비워 둬도 돼요.</p>
+  <div id="fields"></div>
+</section>
+
+</div><div class="col">
+<section>
+  <h2><span>3</span>내가 쓴 일기 만들기</h2>
+  <button class="btn" id="make">✨ 일기 만들기</button>
+  <div class="box"><textarea id="diary" placeholder="여기에 일기가 나와요. 마음대로 고쳐도 돼요."></textarea><button class="x" data-t="diary" aria-label="지우기">✕</button></div>
+  <div class="fix" id="fix"></div>
+  <div class="fb" id="fb" hidden></div>
+</section>
+
+<section>
+  <h2><span>4</span>AI 코치와 더 풍부하게</h2>
+  <p class="hint">내가 쓴 글은 그대로 남고, AI가 다듬은 글은 아래에 따로 나와요. 마음에 안 들면 고쳐도 돼요.</p>
+  <button class="btn" id="coach">🤖 AI 코치에게 부탁하기</button>
+  <div class="box"><textarea id="ai" placeholder="AI가 다듬은 일기가 여기에 나와요."></textarea><button class="x" data-t="ai" aria-label="지우기">✕</button></div>
+  <div class="fb" id="aifb" hidden></div>
+</section>
+
+<section>
+  <h2><span>5</span>저장하기</h2>
+  <button class="btn" id="save">☁️ 구글 시트에 저장</button>
+  <button class="btn sub" id="copy">📋 복사하기</button>
+  <div id="msg"></div>
+  <details><summary>선생님 설정</summary>
+    <div class="box" style="margin-top:8px"><input id="url" placeholder="Apps Script 웹 앱 주소 (https://script.google.com/macros/s/.../exec)"><button class="x" data-t="url" aria-label="지우기">✕</button></div>
+    <div class="box" style="margin-top:8px"><input id="code" placeholder="교사 코드 (README에서 정한 비밀번호)"><button class="x" data-t="code" aria-label="지우기">✕</button></div>
+    <p class="hint">이 기기에만 저장돼요. AI 코치를 쓰면 일기 글이 AI 서비스로 전송되니, 학생 실명 등 개인정보는 쓰지 않도록 지도해 주세요.</p>
+  </details>
+</section>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);
+const WEATHER=[['☀️','맑음'],['⛅','구름 조금'],['☁️','흐림'],['🌧️','비'],['❄️','눈'],['💨','바람'],['🌈','무지개']];
+const FIELDS=[
+ {k:'who',q:'누가',ph:'예: 엄마, 아빠',ex:['혼자','엄마','아빠','친구','선생님','가족','동생']},
+ {k:'when',q:'언제',ph:'예: 점심시간에',ex:['아침에','점심시간에','수업 시간에','방과 후에','저녁에','주말에']},
+ {k:'where',q:'어디서',ph:'예: 학교',ex:['학교','집','운동장','공원','급식실','놀이터','마트','병원']},
+ {k:'what',q:'무엇을',ph:'예: 그네를 탔어요',ex:[]},
+ {k:'how',q:'어떻게',ph:'예: 즐겁게',ex:['즐겁게','열심히','천천히','조용히','친구들과 함께','조심조심']},
+ {k:'feel',q:'그때의 기분',ph:'예: 기분이 좋았어요',ex:['기분이 좋았다','신났다','재미있었다','뿌듯했다','떨렸다','무서웠다','슬펐다','화가 났다']}
+];
+const ACT={
+ '학교':['친구와 놀았','수업을 들었','책을 읽었','그림을 그렸','발표를 했'],
+ '집':['밥을 먹었','게임을 했','TV를 봤','청소를 도왔','낮잠을 잤'],
+ '운동장':['공놀이를 했','달리기를 했','줄넘기를 했','친구와 뛰어놀았'],
+ '공원':['산책을 했','자전거를 탔','그네를 탔','꽃을 봤'],
+ '급식실':['점심을 먹었','친구와 줄을 섰','맛있는 반찬을 먹었'],
+ '놀이터':['그네를 탔','미끄럼틀을 탔','친구와 놀았'],
+ '마트':['과자를 샀','엄마와 장을 봤','계산을 해 봤'],
+ '병원':['진료를 받았','주사를 맞았','의사 선생님을 만났']
+};
+const FIXES=[['됬','됐'],['됫','됐'],['안되','안 되'],['어떻해','어떡해'],['어떻게해','어떻게 해'],['몇일','며칠'],['웬지','왠지'],['할께','할게'],['갈께','갈게'],['볼께','볼게'],['먹을께','먹을게'],['했읍니다','했습니다'],['않됀','안 된'],['돼서','돼서'],['재밋','재미있'],['재밌','재미있'],['이쁘','예쁘'],['했어여','했어요'],['해써','했어'],['먹어써','먹었어'],['가써','갔어'],['잇어','있어'],['업어','없어'],['오늘은날','오늘은 날'],['친구랑같이','친구랑 같이'],['학교에가','학교에 가']];
+let weather='',boxes={};
+
+// 날짜·날씨
+$('date').value=new Date(new Date()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+WEATHER.forEach(([ic,nm])=>{const b=document.createElement('button');b.innerHTML=ic+'<small>'+nm+'</small>';b.setAttribute('aria-label',nm);
+ b.onclick=()=>{weather=nm;[...$('weather').children].forEach(c=>c.classList.remove('on'));b.classList.add('on')};$('weather').appendChild(b)});
+
+// 입력칸
+const MULTI={who:1,how:1,feel:1};
+const full=s=>/[다요]$/.test(s)?s:s+'다';
+const split=v=>v.split(/[,，、]\s*/).map(s=>s.trim()).filter(Boolean);
+const cur=k=>MULTI[k]?split(boxes[k].value):[boxes[k].value.trim()];
+function mark(k){const c=cur(k);[...$('c-'+k).children].forEach(b=>b.classList.toggle('on',c.includes(b.textContent)))}
+function chips(k,list){const c=$('c-'+k);c.innerHTML='';list.forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;
+ b.onclick=()=>{if(MULTI[k]){const a=split(boxes[k].value);boxes[k].value=(a.includes(t)?a.filter(x=>x!==t):[...a,t]).join(', ')}
+  else boxes[k].value=boxes[k].value.trim()===t?'':t;
+  boxes[k].dispatchEvent(new Event('input'))};c.appendChild(b)});mark(k)}
+FIELDS.forEach(f=>{const d=document.createElement('div');d.className='field';
+ d.innerHTML=`<label for="i-${f.k}">${f.q}${MULTI[f.k]?` <small>(여러 ${f.k==='who'?'명':'개'} 고를 수 있어요)</small>`:''}</label><div class="box"><input id="i-${f.k}" placeholder="${f.ph}" autocomplete="off"><button class="x" data-t="i-${f.k}" aria-label="지우기">✕</button></div><div class="rec" id="r-${f.k}"></div><div class="chips" id="c-${f.k}"></div>`;
+ $('fields').appendChild(d);boxes[f.k]=$('i-'+f.k);chips(f.k,f.ex);boxes[f.k].addEventListener('input',()=>mark(f.k))});
+function recommend(){const w=boxes.where.value.trim();const key=Object.keys(ACT).find(p=>w.includes(p));
+ const prev=[...$('c-what').children].map(b=>b.textContent);
+ if(prev.includes(boxes.what.value.trim()))boxes.what.value='';
+ if(key){chips('what',ACT[key].map(full));$('r-what').textContent='💡 '+key+'에서 한 일이에요. 골라 보세요!'}
+ else{chips('what',['친구와 놀았','밥을 먹었','책을 읽었','그림을 그렸','산책을 했'].map(full));$('r-what').textContent=w?'💡 이런 일은 어때요?':'💡 "어디서"를 고르면 맞는 행동을 알려 줘요'}}
+boxes.where.addEventListener('input',recommend);recommend();
+document.addEventListener('click',e=>{const t=e.target.dataset&&e.target.dataset.t;if(t){const el=$(t);el.value='';el.dispatchEvent(new Event('input'));el.focus()}});
+
+// 일기 만들기 (내가 쓴 글)
+const style=()=>[boxes.what.value,boxes.feel.value].some(x=>/요[.!?]?\s*$/.test(x))?'yo':'da';
+const josa=(w,a,b)=>{const c=w.charCodeAt(w.length-1);return w+((c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28)?a:b)};
+function fin(s){s=s.trim();if(!s)return'';if(/[.!?]$/.test(s))return s;const c=s.charCodeAt(s.length-1);
+ if(c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28===20)return s+(style()==='da'?'다.':'어요.');return s+'.'}
+function fixText(t){const done=[];FIXES.forEach(([a,b])=>{if(a!==b&&t.includes(a)){t=t.split(a).join(b);done.push(a+' → '+b)}});
+ t=t.replace(/[ \t]+/g,' ').replace(/\s+([.,!?])/g,'$1');return[t,done]}
+function whoText(v){let a=split(v);if(!a.length)return'나는';
+ if(a.length===1&&/^(나는|내가|저는)$/.test(a[0]))return a[0];
+ a=a.filter(x=>!/^(나는|내가)$/.test(x));if(!a.length)return'나는';
+ if(a.includes('혼자'))return'나는 혼자';
+ const last=a.pop();const lj=/(와|과|랑|하고)$/.test(last)?last:josa(last,'과','와');
+ return'나는 '+[...a,lj].join(', ')+' 함께'}
+const vals=()=>{const v={};FIELDS.forEach(f=>v[f.k]=boxes[f.k].value.trim());return v};
+const conn=x=>/다$/.test(x)?x.slice(0,-1)+'고':/[어아]요$/.test(x)?x.replace(/[어아]요$/,'고'):x;
+function feelText(v){const a=split(v);if(!a.length)return'';
+ return'그때 '+a.map((x,i)=>{const y=i?x.replace(/^(기분이|기분은|마음이)\s*/,''):x;return i<a.length-1?conn(y):y}).join(' ')}
+function compose(){const v=vals();
+ const where=v.where?(/에서$/.test(v.where)?v.where:v.where+'에서'):'';
+ const when=v.when?(/[에부터]$/.test(v.when)?v.when:v.when+'에'):'';
+ if(!(v.what||v.where||v.who||v.when))return'';
+ const s1=['오늘',when,whoText(v.who),where,split(v.how).join(' '),v.what].filter(Boolean).join(' ');
+ const s2=feelText(v.feel);
+ return[fin(s1),s2?fin(s2):''].filter(Boolean).join(' ')}
+$('make').onclick=()=>{const raw=compose();if(!raw){$('fb').hidden=false;$('fb').textContent='🌱 먼저 위의 칸을 한두 개 채워 볼까요? 골라도 되고, 써도 돼요.';return}
+ const[t,done]=fixText(raw);$('diary').value=t;
+ $('fix').textContent=done.length?'✏️ 고친 곳: '+done.join(', '):'✏️ 고칠 곳이 없어요. 잘 썼어요!';
+ const neg=/무서|슬|화|싫|속상|아팠/.test(boxes.feel.value);
+ const n=FIELDS.filter(x=>boxes[x.k].value.trim()).length;
+ let m=neg?'그때 마음을 솔직하게 써 줘서 고마워요. 그런 기분이 들 수도 있어요. ':'오늘 있었던 일을 하나하나 잘 떠올려 썼네요. 정말 잘했어요! ';
+ m+=n>=5?'누가, 언제, 어디서를 꼼꼼히 써서 장면이 눈에 그려져요. ':'다음에는 빈 칸도 하나 더 채워 보면 더 멋진 일기가 될 거예요. ';
+ $('fb').hidden=false;$('fb').textContent='👩‍🏫 선생님 한마디\n'+m+'이제 아래에서 AI 코치와 더 풍부하게 만들어 볼까요? 😊'};
+
+// 설정·통신
+$('url').value=localStorage.getItem('sheetUrl')||'';$('code').value=localStorage.getItem('teacherCode')||'';
+$('url').addEventListener('input',()=>localStorage.setItem('sheetUrl',$('url').value.trim()));
+$('code').addEventListener('input',()=>localStorage.setItem('teacherCode',$('code').value.trim()));
+const msg=(t,ok)=>{$('msg').textContent=t;$('msg').style.color=ok?'#2e7d32':'#b3261e'};
+async function post(p){const r=await fetch($('url').value.trim(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...p,code:$('code').value.trim()})});return r.json()}
+
+// AI 코칭
+$('coach').onclick=async()=>{const draft=$('diary').value.trim();
+ if(!draft)return msg('먼저 "일기 만들기"로 내가 쓴 글을 만들어 주세요.');
+ if(!$('url').value.trim())return msg('선생님 설정에 주소를 먼저 넣어 주세요. (README 참고)');
+ const b=$('coach');b.disabled=true;b.textContent='🤖 AI 코치가 생각 중이에요...';msg('');
+ try{const d=await post({action:'coach',date:$('date').value,weather,draft,fields:vals()});
+  if(!d.ok)throw new Error(d.error||'알 수 없는 오류');
+  $('ai').value=d.diary;$('aifb').hidden=false;$('aifb').textContent='👩‍🏫 AI 선생님 한마디\n'+d.feedback}
+ catch(e){msg('AI 코치를 불러오지 못했어요: '+e.message)}
+ finally{b.disabled=false;b.textContent='🤖 AI 코치에게 부탁하기'}};
+
+// 저장
+$('save').onclick=async()=>{const mine=$('diary').value.trim();
+ if(!mine)return msg('먼저 일기를 만들어 주세요.');
+ if(!$('url').value.trim())return msg('선생님 설정에 구글 시트 주소를 먼저 넣어야 해요. (README 참고)');
+ try{const d=await post({action:'save',date:$('date').value,weather,mine,ai:$('ai').value.trim()});
+  if(!d.ok)throw new Error(d.error);msg('☁️ 저장했어요!'+($('ai').value.trim()?'':' (AI 글은 비어 있어요)'),true)}
+ catch(e){msg('저장 결과를 확인하지 못했어요('+e.message+'). 구글 시트에서 확인한 뒤, 없을 때만 다시 눌러 주세요.')}};
+$('copy').onclick=async()=>{const t=`${$('date').value} ${weather}\n[내가 쓴 글]\n${$('diary').value}\n\n[AI가 다듬은 글]\n${$('ai').value}`;
+ try{await navigator.clipboard.writeText(t);msg('📋 복사했어요!',true)}catch(e){msg('복사하지 못했어요. 글을 직접 선택해 복사해 주세요.')}};
+</script>
+</body>
+</html>
