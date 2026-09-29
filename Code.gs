@@ -1,9 +1,16 @@
-// 오늘의 일기 도우미 - 저장 + AI 코칭 서버
-// 시트 "일기": A=날짜, B=날씨, C=내가 쓴 글, D=AI가 수정해준 글
+// 오늘의 일기 도우미 - 저장 + AI 코칭 서버 (학생별 시트 방식)
+// 이 시트의 "학생명단" 탭: A=학생(번호/별명), B=시트ID(자동), C=시트 링크(자동)
+// 각 학생 시트의 "일기" 탭: A=날짜, B=날씨, C=내가 쓴 글, D=AI가 수정해준 글
 var MODEL = 'gemini-3.5-flash'; // 모델이 종료되거나 오류가 나면 AI Studio에서 현재 이름을 확인해 여기만 수정
+var ROSTER = '학생명단';
+var HEADER = ['날짜', '날씨', '내가 쓴 글', 'AI가 수정해준 글'];
 
 function out(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('일기 도우미').addItem('학생 시트 만들기', 'makeStudentSheets').addToUi();
 }
 
 function doPost(e) {
@@ -12,6 +19,7 @@ function doPost(e) {
     var d = JSON.parse(e.postData.contents);
     var need = p.getProperty('ACCESS_CODE');
     if (need && d.code !== need) return out({ ok: false, error: '교사 코드가 달라요' });
+    if (d.action === 'students') return out({ ok: true, names: readRoster().map(function (x) { return x.name; }) });
     if (d.action === 'coach') return out(coach(d, p));
     if (d.action === 'save') return out(save(d));
     return out({ ok: false, error: '알 수 없는 요청' });
@@ -22,11 +30,56 @@ function doPost(e) {
 
 function doGet() { return ContentService.createTextOutput('일기 도우미 연결 OK'); }
 
-function save(d) {
+function rosterSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName('일기') || ss.insertSheet('일기');
-  if (sh.getLastRow() === 0) sh.appendRow(['날짜', '날씨', '내가 쓴 글', 'AI가 수정해준 글']);
-  else if (!sh.getRange('D1').getValue()) sh.getRange('D1').setValue('AI가 수정해준 글'); // 예전 시트 보완
+  var sh = ss.getSheetByName(ROSTER);
+  if (!sh) { sh = ss.insertSheet(ROSTER); sh.appendRow(['학생(번호/별명)', '시트ID(자동)', '시트 링크(자동)']); }
+  return sh;
+}
+
+function readRoster() {
+  var sh = rosterSheet(), n = sh.getLastRow(), r = [];
+  if (n < 2) return r;
+  var v = sh.getRange(2, 1, n - 1, 3).getValues();
+  for (var i = 0; i < v.length; i++) {
+    var name = String(v[i][0]).trim();
+    if (name) r.push({ row: i + 2, name: name, id: String(v[i][1]).trim() });
+  }
+  return r;
+}
+
+// 메뉴: 일기 도우미 > 학생 시트 만들기 (이미 만든 학생은 건너뜀)
+function makeStudentSheets() {
+  var sh = rosterSheet(), list = readRoster(), made = 0;
+  list.forEach(function (s) {
+    if (s.id) return;
+    var ss = SpreadsheetApp.create('일기 - ' + s.name);
+    var t = ss.getSheets()[0];
+    t.setName('일기');
+    t.appendRow(HEADER);
+    sh.getRange(s.row, 2).setValue(ss.getId());
+    sh.getRange(s.row, 3).setValue(ss.getUrl());
+    made++;
+  });
+  var msg = list.length ? made + '개의 학생 시트를 만들었어요. (이미 있는 학생은 건너뛰었어요)'
+                        : '"학생명단" 탭의 A2 칸부터 학생 번호나 별명을 적고 다시 눌러 주세요.';
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) {}
+}
+
+function save(d) {
+  var list = readRoster(), target;
+  if (list.length) {
+    if (!d.student) return { ok: false, error: '내 이름(번호)을 골라 주세요' };
+    var s = list.filter(function (x) { return x.name === d.student; })[0];
+    if (!s) return { ok: false, error: '명단에 없는 학생이에요' };
+    if (!s.id) return { ok: false, error: '학생 시트가 아직 없어요. 선생님께 알려 주세요' };
+    target = SpreadsheetApp.openById(s.id);
+  } else {
+    target = SpreadsheetApp.getActiveSpreadsheet(); // 명단이 비어 있으면 이 시트에 저장
+  }
+  var sh = target.getSheetByName('일기') || target.insertSheet('일기');
+  if (sh.getLastRow() === 0) sh.appendRow(HEADER);
+  else if (!sh.getRange('D1').getValue()) sh.getRange('D1').setValue(HEADER[3]);
   sh.appendRow([d.date, d.weather, d.mine, d.ai || '']);
   return { ok: true };
 }
