@@ -1,6 +1,6 @@
 // 오늘의 일기 도우미 - 저장 + AI 코칭 서버
 // 시트 "일기": A=날짜, B=날씨, C=내가 쓴 글, D=AI가 수정해준 글
-var MODEL = 'claude-sonnet-5-5'; // 바꾸고 싶으면 여기만 수정
+var MODEL = 'gemini-3.5-flash'; // 모델이 종료되거나 오류가 나면 AI Studio에서 현재 이름을 확인해 여기만 수정
 
 function out(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
@@ -32,7 +32,7 @@ function save(d) {
 }
 
 function coach(d, p) {
-  var key = p.getProperty('ANTHROPIC_API_KEY');
+  var key = p.getProperty('GEMINI_API_KEY');
   if (!key) return { ok: false, error: 'API 키가 설정되지 않았어요' };
   var system =
     '너는 특수교육 교사를 돕는 따뜻한 일기 코치다. 학생이 쓴 일기를 조금 더 풍부하게 다듬는다.\n' +
@@ -49,17 +49,23 @@ function coach(d, p) {
     '\n학생이 고른 내용: 누가=' + (f.who || '') + ', 언제=' + (f.when || '') + ', 어디서=' + (f.where || '') +
     ', 무엇을=' + (f.what || '') + ', 어떻게=' + (f.how || '') + ', 기분=' + (f.feel || '') +
     '\n학생의 일기:\n' + d.draft;
-  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent';
+  var res = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
-    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: MODEL, max_tokens: 800, system: system,
-      messages: [{ role: 'user', content: user }] })
+    headers: { 'x-goog-api-key': key },
+    payload: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: user }] }],
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 2048 }
+    })
   });
   var j = JSON.parse(res.getContentText());
   if (res.getResponseCode() !== 200) return { ok: false, error: (j.error && j.error.message) || 'AI 호출 실패' };
-  var text = j.content.map(function (c) { return c.text || ''; }).join('');
+  var c = j.candidates && j.candidates[0];
+  if (!c || !c.content || !c.content.parts) return { ok: false, error: 'AI가 답을 주지 않았어요 (' + ((c && c.finishReason) || '빈 응답') + ')' };
+  var text = c.content.parts.map(function (x) { return x.text || ''; }).join('');
   var m = text.match(/\{[\s\S]*\}/);
   if (!m) return { ok: false, error: 'AI 답변을 읽지 못했어요' };
   var o = JSON.parse(m[0]);
