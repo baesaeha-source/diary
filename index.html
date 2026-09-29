@@ -202,7 +202,7 @@ $('save').onclick=async()=>{const mine=$('diary').value.trim();
  if(!$('url').value.trim())return msg('선생님 설정에 구글 시트 주소를 먼저 넣어야 해요. (README 참고)');
  const st=$('student').value;if(!$('stWrap').hidden&&!st)return msg('먼저 위에서 내 이름(번호)을 골라 주세요.');
  try{const d=await post({action:'save',student:$('student').value,date:$('date').value,weather,mine,ai:$('ai').value.trim()});
-  if(!d.ok)throw new Error(d.error);msg('☁️ 저장했어요!'+($('ai').value.trim()?'':' (AI 글은 비어 있어요)'),true)}
+  if(!d.ok)return msg('저장하지 못했어요: '+d.error);msg('☁️ 저장했어요!'+($('ai').value.trim()?'':' (AI 글은 비어 있어요)'),true)}
  catch(e){msg('저장 결과를 확인하지 못했어요('+e.message+'). 구글 시트에서 확인한 뒤, 없을 때만 다시 눌러 주세요.')}};
 $('copy').onclick=async()=>{const t=`${$('date').value} ${weather}\n[내가 쓴 글]\n${$('diary').value}\n\n[AI가 다듬은 글]\n${$('ai').value}`;
  try{await navigator.clipboard.writeText(t);msg('📋 복사했어요!',true)}catch(e){msg('복사하지 못했어요. 글을 직접 선택해 복사해 주세요.')}};
